@@ -1,26 +1,15 @@
-#include <iostream>
-#include "raylib.h"
-#include <raymath.h>
-#include <climits>
+#include <algorithm>
+
 #include "constants.hpp"
+#include "utils.hpp"
 #include <array>
+#include <iostream>
+#include <ostream>
+#include <string>
+#include <vector>
 
-float GetRandomFValue(const float min, const float max)
-{
-    return min + ((max - min) * static_cast<float>((GetRandomValue(1, INT_MAX)) / static_cast<float>(INT_MAX))); // NOLINT(*-narrowing-conversions)
-}
 
-Vector2 VectorMod(const Vector2 vec, const Vector2 vec2)
-{
-    const Vector2 mod = {vec.x - (vec2.x * floorf(vec.x / vec2.x)), vec.y - (vec2.y * floorf(vec.y / vec2.y))};
-    return mod;
-}
-
-float GetRandomFNormalized()
-{
-    const float random = GetRandomFValue(-1, 1);
-    return random / std::fabsf(random);
-}
+using Grid = std::array<std::array<std::vector<int>, kColumns>, kRows>;
 
 struct Particle
 {
@@ -41,31 +30,57 @@ struct Particle
 
         this->position += (this->velocity * kDeltaTime);
 
-        this->position = VectorMod(this->position, {kWindowWidth, kWindowHeight});
+        this->position = Utils::VectorMod(this->position, {kWindowWidth, kWindowHeight});
     }
 
-    void MakeConstellation(const std::array<Particle, kParticleCount>& particles) const
+    void MakeConstellation(const Grid& grid, const std::array<Particle, kParticleCount>& particles) const
     {
-        for (size_t i{}; i < kParticleCount; ++i)
+        int gridPositionY = std::floor(this->position.y / 25.0f);
+        int gridPositionX = std::floor(this->position.x / 25.0f);
+
+
+        for (int i = -1; i <= 1; ++i)
         {
-            if (this->id == i)
+            for (int j = -1; j <= 1; ++j)
             {
-                continue;
-            }
+                int gridRow = gridPositionY + j;
+                int gridColumn = gridPositionX + i;
+                gridRow = std::clamp(gridRow, 0, kRows - 1);
+                gridColumn = std::clamp(gridColumn, 0, kColumns - 1);
 
-            Particle otherParticle = particles[i];
-            float distanceSqr = Vector2DistanceSqr(this->position, otherParticle.position);
+                if (gridColumn < 0 || gridColumn > 21) std::cout << gridColumn << std::endl;
+                if (gridRow < 0 || gridRow > 27) std::cout << gridRow << std::endl;
 
-            if (distanceSqr < kLineRadius)
-            {
-                DrawLineEx(this->position, otherParticle.position, 1, RAYWHITE);
+                for (const auto particleId : grid[gridRow][gridColumn])
+                {
+                    if (this->id == particleId) { continue; }
+
+                    const float distanceSqr = Vector2DistanceSqr(this->position, particles[particleId].position);
+
+                    if (distanceSqr < kConstellationRadiusSqr && distanceSqr > 1)
+                    {
+                        DrawLineEx(this->position, particles[particleId].position, 1, RAYWHITE);
+                    }
+                }
             }
         }
     }
 };
 
+bool isPaused = false;
 std::array<Particle, kParticleCount> particles;
+Grid grid{};
 
+void AllocateVectorSpace()
+{
+    for (size_t i{}; i < kRows; ++i)
+    {
+        for (size_t j{}; j < kColumns; ++j)
+        {
+            grid[i][j].reserve(kParticleCount / (kRows * kColumns));
+        }
+    }
+}
 
 int InitParticles()
 {
@@ -73,18 +88,25 @@ int InitParticles()
     float positionY{};
     float velocityX{};
     float velocityY{};
+    int gridPositionX{};
+    int gridPositionY{};
 
     for (size_t i{}; i < kParticleCount; ++i)
     {
-        positionX = (GetRandomFValue(0, kWindowWidth));
-        positionY = (GetRandomFValue(0, kWindowHeight));
+        positionX = (Utils::GetRandomFValue(0, kWindowWidth));
+        positionY = (Utils::GetRandomFValue(0, kWindowHeight));
 
-        velocityX = GetRandomFValue(-kParticleSpeed, kParticleSpeed);
-        velocityY = GetRandomFValue(-kParticleSpeed, kParticleSpeed);
+        velocityX = Utils::GetRandomFValue(-kParticleSpeed, kParticleSpeed);
+        velocityY = Utils::GetRandomFValue(-kParticleSpeed, kParticleSpeed);
 
         particles[i].position = {positionX, positionY};
         particles[i].velocity = {velocityX, velocityY};
         particles[i].id = static_cast<int>(i);
+
+        gridPositionX = std::floor(positionX / 25.0f);
+        gridPositionY = std::floor(positionY / 25.0f);
+
+        grid[gridPositionY][gridPositionX].push_back(static_cast<int>(i));
     }
 
     return 0;
@@ -92,11 +114,6 @@ int InitParticles()
 
 void RunSimulation()
 {
-    for (size_t i{}; i < kParticleCount; ++i)
-    {
-        particles[i].MakeConstellation(particles);
-    }
-
     if (IsKeyPressed(KEY_R))
     {
         InitParticles();
@@ -106,6 +123,29 @@ void RunSimulation()
     {
         particles[i].Move();
     }
+
+    for (size_t i{}; i < kRows; ++i)
+    {
+        for (size_t j{}; j < kColumns; ++j)
+        {
+            grid[i][j].clear();
+        }
+    }
+    for (size_t i{}; i < kParticleCount; ++i)
+    {
+        int gridPositionY = std::floor(particles[i].position.y / 25.0f);
+        int gridPositionX = std::floor(particles[i].position.x / 25.0f);
+        gridPositionY = std::clamp(gridPositionY, 0, kRows - 1);
+        gridPositionX = std::clamp(gridPositionX, 0, kRows - 1);
+
+        if (gridPositionY < 0 || gridPositionY > 27 || gridPositionX < 0 || gridPositionX > 21)
+        {
+            std::cout << gridPositionY << " " << gridPositionX << std::endl;
+        }
+        grid[gridPositionY][gridPositionX].push_back(static_cast<int>(i));
+    }
+
+    for (auto particle : particles) { particle.MakeConstellation(grid, particles); }
 }
 
 int main()
@@ -115,23 +155,31 @@ int main()
     SetTargetFPS(60);
     InitParticles();
 
+    AllocateVectorSpace();
 
     while (!WindowShouldClose())
     {
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            isPaused = !isPaused;
+        }
+
+
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground({8,8,10,255});
 
-        DrawFPS(15, 15);
-
-        DrawCircleV({kWindowWidth / 2.0f, kWindowHeight / 2.0f}, kBHoleRadius, {51, 51, 37, 255});
 
         for (const auto particle : particles)
         {
-            Rectangle star = {particle.position.x, particle.position.y, kStarSize, kStarSize};
-            DrawRectanglePro(star, {kStarSize / 2.0f,kStarSize / 2.0f}, atan2f(particle.velocity.y, particle.velocity.x) * RAD2DEG, RAYWHITE);
+            const Rectangle star = {particle.position.x, particle.position.y, kStarSize, kStarSize};
+            DrawRectanglePro(star, {kStarSize / 2.0f, kStarSize / 2.0f}, atan2f(particle.velocity.y, particle.velocity.x) * RAD2DEG, {152,152,152,255});
         }
-        RunSimulation();
 
+        if (isPaused)
+        {
+            RunSimulation();
+        }
+        DrawFPS(15, 15);
         EndDrawing();
     }
 

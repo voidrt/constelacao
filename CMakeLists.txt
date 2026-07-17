@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(Constellations CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -15,6 +15,7 @@ FetchContent_Declare(
 set(SOURCES
         main.cpp
         constants.hpp
+        utils.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

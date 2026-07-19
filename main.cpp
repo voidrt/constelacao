@@ -23,9 +23,9 @@ struct Particle
         const Vector2 centripetal = center - this->position;
         const float distanceToCenterSqr = Vector2DistanceSqr(center, this->position);
 
-        if (distanceToCenterSqr > (5.0f))
+        if (distanceToCenterSqr > (kBHoleRadius*kBHoleRadius))
         {
-            this->velocity += (Vector2Normalize(centripetal) * kCentripetalForce) / (distanceToCenterSqr + kBHoleRadius);
+            this->velocity += Vector2Normalize(centripetal) * (kBHoleMass/distanceToCenterSqr);
         }
 
         this->position += (this->velocity * kDeltaTime);
@@ -164,15 +164,13 @@ int main()
             isPaused = !isPaused;
         }
 
-
         BeginDrawing();
-        ClearBackground({8,8,10,255});
-
+        ClearBackground({24,24,22,255});
 
         for (const auto particle : particles)
         {
             const Rectangle star = {particle.position.x, particle.position.y, kStarSize, kStarSize};
-            DrawRectanglePro(star, {kStarSize / 2.0f, kStarSize / 2.0f}, atan2f(particle.velocity.y, particle.velocity.x) * RAD2DEG, {152,152,152,255});
+            DrawRectanglePro(star, {kStarSize / 2.0f, kStarSize / 2.0f}, atan2f(particle.velocity.y, particle.velocity.x) * RAD2DEG, {218,218,218,255});
         }
 
         if (isPaused)

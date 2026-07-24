@@ -11,6 +11,12 @@ struct Utils
         return min + ((max - min) * static_cast<float>((GetRandomValue(1, INT_MAX)) / static_cast<float>(INT_MAX))); // NOLINT(*-narrowing-conversions)
     }
 
+    static float GetRandomFNormalized()
+    {
+        const float random = GetRandomFValue(-1, 1);
+        return (random / abs(random));
+    }
+
     static Vector2 VectorToroidalMod(Vector2 vector, const Vector2 worldSpace)
     {
         if (vector.x > (worldSpace.x / 2.0f))
@@ -32,14 +38,22 @@ struct Utils
         return vector;
     }
 
-    static float GetRandomFNormalized()
+    static Vector2 VectorMod(const Vector2 vec, const Vector2 vec2)
     {
-        const float random = GetRandomFValue(-1, 1);
-        return (random / abs(random));
+        const Vector2 mod = {.x = vec.x - (vec2.x * floorf(vec.x / vec2.x)), .y = vec.y - (vec2.y * floorf(vec.y / vec2.y))};
+        return mod;
     }
 
-    static void HandleCameraControl(Camera2D& camera)
+    static void HandleSimulationControl(Camera2D& camera, bool& isPaused, bool& hideStars)
     {
-        camera.zoom = Clamp(expf(logf(camera.zoom) + ((float)GetMouseWheelMove() * 0.1f)), 0.1f, 2.5f);
+        camera.zoom = Clamp(expf(logf(camera.zoom) + ((float)GetMouseWheelMove() * 0.1f)), 0.1f, 3.5f);
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            isPaused = !isPaused;
+        }
+        if (IsKeyPressed(KEY_H))
+        {
+            hideStars = !hideStars;
+        }
     }
 };

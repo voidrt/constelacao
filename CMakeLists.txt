@@ -14,8 +14,11 @@ FetchContent_Declare(
 
 set(SOURCES
         main.cpp
-        constants.hpp
-        utils.hpp
+        src/constants.hpp
+        src/utils.hpp
+        src/grid/grid.hpp
+        src/stars/star.hpp
+        src/stars/star.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

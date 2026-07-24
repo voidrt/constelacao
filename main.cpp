@@ -1,115 +1,74 @@
 #include <algorithm>
-#include "constants.hpp"
-#include "utils.hpp"
-#include <array>
-#include <vector>
+#include "src/grid/grid.hpp"
+#include "src/stars/star.hpp"
+#include "src/constants.hpp"
+#include "src/utils.hpp"
 
-
-using Grid = std::array<std::array<std::vector<int>, kColumns>, kRows>;
-
-struct Particle
-{
-    Vector2 position;
-    Vector2 velocity;
-    int id;
-
-    void Move()
-    {
-        const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - this->position, {.x = kWorldWidth, .y = kWorldHeight});
-        const float distanceToCenterSqr = Vector2LengthSqr(centripetal);
-
-        if (distanceToCenterSqr > 1.0f)
-        {
-            this->velocity += Vector2Scale(Vector2Normalize(centripetal), (kGravityConstant * kBHoleMass) / distanceToCenterSqr) * kDeltaTime;
-        }
-
-        this->position += (this->velocity * kDeltaTime);
-    }
-
-    void MakeConstellation(const Grid& grid, const std::array<Particle, kParticleCount>& particles) const
-    {
-        int gridPositionY = std::floor(this->position.y / 25.0f);
-        int gridPositionX = std::floor(this->position.x / 25.0f);
-
-        for (int i = -1; i <= 1; ++i)
-        {
-            for (int j = -1; j <= 1; ++j)
-            {
-                int gridRow = gridPositionY + j;
-                int gridColumn = gridPositionX + i;
-                gridRow = std::clamp(gridRow, 0, kRows - 1);
-                gridColumn = std::clamp(gridColumn, 0, kColumns - 1);
-
-                for (const auto particleId : grid[gridRow][gridColumn])
-                {
-                    if (this->id == particleId) { continue; }
-
-                    const float distanceSqr = Vector2DistanceSqr(this->position, particles[particleId].position);
-
-                    if (distanceSqr < kConstellationRadiusSqr)
-                    {
-                        DrawLineV(this->position, particles[particleId].position, {218, 218, 218, 5});
-                    }
-                }
-            }
-        }
-    }
+static bool isPaused = true;
+static bool hideStars = false;
+static std::array<Star, kStarCount> stars;
+static Grid grid{};
+static Camera2D camera = {
+    .offset = {.x = kWindowWidth / 2.0f, .y = kWindowHeight / 2.0f},
+    .target = {.x = kWorldWidth / 2.0f, .y = kWorldHeight / 2.0f},
+    .rotation = 0,
+    .zoom = 1.0f
 };
 
-bool isPaused = false;
-std::array<Particle, kParticleCount> particles;
-Grid grid{};
-
-
-void AllocateVectorSpace()
+static void AllocateVectorSpace()
 {
     for (size_t i{}; i < kRows; ++i)
     {
         for (size_t j{}; j < kColumns; ++j)
         {
-            grid[i][j].reserve(kParticleCount / (kRows * kColumns));
+            grid[i][j].reserve(kStarCount / (kRows * kColumns));
         }
     }
 }
 
-int InitParticles()
+static Vector2 GenerateRandomPosition()
 {
-    Vector2 position{};
-    Vector2 velocity{};
+    const float radiusRandom = Utils::GetRandomFValue(0.0f, 1.0f);
+    const float angleRandom = Utils::GetRandomFValue(0.0f, 1.0f);
+    const float positionR = 45.0f + (sqrt(radiusRandom) * ((kWorldWidth / 2.0f) - 75.0f));
+    const float positionTheta = 2 * PI * angleRandom;
+
+    const Vector2 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta)};
+
+    return positionGenerated;
+}
+
+static Vector2 GenerateTangentVelocity(const Vector2& position)
+{
+    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.2f);
+    const float signMultiplier = Utils::GetRandomFNormalized();
+
+    const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - position, {.x = kWorldWidth, .y = kWorldHeight});
+    const Vector2 tangent = {.x = -centripetal.y, .y = centripetal.x};
+    const float distance = Vector2Length(tangent);
+
+    const Vector2 velocityTan = Vector2Normalize(tangent) * signMultiplier * velocityRandom * sqrt((kGravityConstant * kAnchorMass) / distance);
+    return velocityTan;
+}
+
+static int InitStars()
+{
     int gridPositionX{};
     int gridPositionY{};
 
-    for (size_t i{}; i < kParticleCount; ++i)
+    for (size_t i{}; i < kStarCount; ++i)
     {
-        float random1 = Utils::GetRandomFValue(0.0f, 1.0f);
-        float random2 = Utils::GetRandomFValue(0.0f, 1.0f);
+        const Vector2 position = GenerateRandomPosition();
+        const Vector2 velocity = GenerateTangentVelocity(position);
 
-        float minRadiusSqr = (kBHoleRadius + 30.0f) * (kBHoleRadius + 30.0f);
-        float maxRadiusSqr = (kWorldCenter.x - 55.0f) * (kWorldCenter.x - 55.0f);
+        stars[i].id = static_cast<int>(i);
+        stars[i].position = position;
+        stars[i].velocity = velocity;
 
-        float positionR = std::sqrt(minRadiusSqr + (random1 * (maxRadiusSqr - minRadiusSqr)));
-        float positionTheta = 2 * PI * random2;
-
-
-        position = {.x = kWorldCenter.x + (positionR * cosf(positionTheta)), .y = kWorldCenter.y + (positionR * sinf(positionTheta))};
-        particles[i].position = position;
-
-        const float signMultiplier = Utils::GetRandomFNormalized();
-        const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - position, {.x = kWorldWidth, .y = kWorldHeight});
-        const Vector2 tangent = {.x = -centripetal.y, .y = centripetal.x};
-        const float distance = Vector2Length(tangent);
-        float random3 = Utils::GetRandomFValue(0.65f, 1.4f);
-
-        velocity = Vector2Scale(Vector2Normalize(tangent), signMultiplier * random3 * sqrt((kGravityConstant * kBHoleMass) / distance));
-
-
-        particles[i].velocity = velocity;
-        particles[i].id = static_cast<int>(i);
-
-        gridPositionX = std::floor(position.x / 25.0f);
-        gridPositionY = std::floor(position.y / 25.0f);
-        gridPositionY = std::clamp(gridPositionY, 0, kRows - 1);
+        gridPositionX = std::floor(position.x / kConstellationRadius);
+        gridPositionY = std::floor(position.y / kConstellationRadius);
         gridPositionX = std::clamp(gridPositionX, 0, kColumns - 1);
+        gridPositionY = std::clamp(gridPositionY, 0, kRows - 1);
 
         grid[gridPositionY][gridPositionX].push_back(static_cast<int>(i));
     }
@@ -117,8 +76,24 @@ int InitParticles()
     return 0;
 }
 
-void RunSimulation()
+static void InitSimulation()
 {
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
+    SetTargetFPS(60);
+
+    InitWindow(kWindowWidth, kWindowHeight, "Constellations");
+
+    InitStars();
+    AllocateVectorSpace();
+}
+
+static void RunSimulation()
+{
+    for (Star& star : stars)
+    {
+        star.Move();
+    }
+
     for (size_t i{}; i < kRows; ++i)
     {
         for (size_t j{}; j < kColumns; ++j)
@@ -126,78 +101,58 @@ void RunSimulation()
             grid[i][j].clear();
         }
     }
-
-    for (size_t i{}; i < kParticleCount; ++i)
+    for (const Star& star : stars)
     {
-        particles[i].Move();
-    }
-
-    for (size_t i{}; i < kParticleCount; ++i)
-    {
-        int gridPositionY = std::floor(particles[i].position.y / 25.0f);
-        int gridPositionX = std::floor(particles[i].position.x / 25.0f);
+        int gridPositionY = std::floor(star.position.y / kConstellationRadius);
+        int gridPositionX = std::floor(star.position.x / kConstellationRadius);
         gridPositionY = std::clamp(gridPositionY, 0, kRows - 1);
         gridPositionX = std::clamp(gridPositionX, 0, kColumns - 1);
 
-        grid[gridPositionY][gridPositionX].push_back(static_cast<int>(i));
+        grid[gridPositionY][gridPositionX].push_back(static_cast<int>(star.id));
     }
 
-    for (auto particle : particles) { particle.MakeConstellation(grid, particles); }
+    for (Star& star : stars) { star.MakeConstellation(grid, stars); }
 }
 
 int main()
 {
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitWindow(kWindowWidth, kWindowHeight, "Constellations");
-    SetTargetFPS(60);
-    InitParticles();
-    Camera2D camera{};
-    camera.offset = {.x = kWindowWidth / 2.0f, .y = kWindowHeight / 2.0f};
-    camera.target = {.x = kWorldWidth / 2.0f, .y = kWorldHeight / 2.0f};
-    camera.zoom = 1.0f;
-
-    AllocateVectorSpace();
+    InitSimulation();
 
     while (!WindowShouldClose())
     {
-        Utils::HandleCameraControl(camera);
-        if (IsKeyPressed(KEY_SPACE))
-        {
-            isPaused = !isPaused;
-        }
-        if (IsKeyPressed(KEY_R))
-        {
-            InitParticles();
-        }
+        Utils::HandleSimulationControl(camera, isPaused, hideStars);
 
         BeginDrawing();
         ClearBackground({.r = 24, .g = 24, .b = 22, .a = 255});
 
         BeginMode2D(camera);
 
-        DrawRectangleV({kWorldCenter.x - (kBHoleRadius / 2.0f), kWorldCenter.y - (kBHoleRadius / 2.0f)}, {kBHoleRadius, kBHoleRadius}, RAYWHITE);
-        DrawRectangleLines(0.0f, 0.0f, kWorldWidth, kWorldHeight, DARKGRAY);
+        DrawRectangleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)}, {.x = kAnchorRadius, .y = kAnchorRadius}, RAYWHITE);
 
-        for (const auto particle : particles)
+        if (!hideStars)
         {
-            const Rectangle star = {particle.position.x, particle.position.y, kStarSize, kStarSize};
-            constexpr Vector2 starMiddle = {kStarSize / 2.0f, kStarSize / 2.0f};
-            const float headingAngle = atan2f(particle.velocity.y, particle.velocity.x) * RAD2DEG;
+            for (const Star star : stars)
+            {
+                const Rectangle starBody = {.x = star.position.x, .y = star.position.y, .width = kStarSize, .height = kStarSize};
+                constexpr Vector2 starMiddle = {.x = kStarSize / 2.0f, .y = kStarSize / 2.0f};
+                const float headingAngle = atan2f(star.velocity.y, star.velocity.x) * RAD2DEG;
 
-            DrawRectanglePro(star, starMiddle, headingAngle, {218, 218, 218, 255});
+                DrawRectanglePro(starBody, starMiddle, headingAngle, {.r = 218, .g = 218, .b = 218, .a = 255});
+            }
         }
 
-        if (isPaused)
+        if (!isPaused)
         {
-            for (int i{}; i < 6; ++i)
+            for (int i{}; i < kSimulationSteps; ++i)
             {
                 RunSimulation();
             }
         }
 
-
         EndMode2D();
+
         DrawFPS(15, 15);
+
         EndDrawing();
     }
 

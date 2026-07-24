@@ -1,4 +1,3 @@
-#include <algorithm>
 #include "src/grid/grid.hpp"
 #include "src/stars/star.hpp"
 #include "src/constants.hpp"
@@ -30,17 +29,17 @@ static Vector2 GenerateRandomPosition()
 {
     const float radiusRandom = Utils::GetRandomFValue(0.0f, 1.0f);
     const float angleRandom = Utils::GetRandomFValue(0.0f, 1.0f);
-    const float positionR = 45.0f + (sqrt(radiusRandom) * ((kWorldWidth / 2.0f) - 75.0f));
+    const float positionR = (10 * kAnchorRadius) + (sqrt(radiusRandom) * ((kWorldWidth/2.0f) - (20 * kAnchorRadius)));
     const float positionTheta = 2 * PI * angleRandom;
 
-    const Vector2 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta)};
+    Vector2 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta)};
 
     return positionGenerated;
 }
 
 static Vector2 GenerateTangentVelocity(const Vector2& position)
 {
-    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.2f);
+    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.0f);
     const float signMultiplier = Utils::GetRandomFNormalized();
 
     const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - position, {.x = kWorldWidth, .y = kWorldHeight});
@@ -105,8 +104,6 @@ static void RunSimulation()
     {
         int gridPositionY = std::floor(star.position.y / kConstellationRadius);
         int gridPositionX = std::floor(star.position.x / kConstellationRadius);
-        gridPositionY = std::clamp(gridPositionY, 0, kRows - 1);
-        gridPositionX = std::clamp(gridPositionX, 0, kColumns - 1);
 
         grid[gridPositionY][gridPositionX].push_back(static_cast<int>(star.id));
     }
@@ -128,6 +125,7 @@ int main()
         BeginMode2D(camera);
 
         DrawRectangleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)}, {.x = kAnchorRadius, .y = kAnchorRadius}, RAYWHITE);
+        DrawRectangleLines(0.0f,0.0f,kWorldWidth,kWorldHeight,DARKGRAY);
 
         if (!hideStars)
         {

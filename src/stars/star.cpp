@@ -3,14 +3,12 @@
 void Star::Move()
 {
     const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - this->position, {.x = kWorldWidth, .y = kWorldHeight});
-
     if (const float distanceToCenterSqr = Vector2LengthSqr(centripetal); distanceToCenterSqr > 1.0f)
     {
-        this->velocity += Vector2Scale(Vector2Normalize(centripetal), (kGravityConstant * kAnchorMass) / distanceToCenterSqr) * kDeltaTime;
+        this->velocity += Vector2Scale(Vector2Normalize(centripetal), (kGravityConstant * kDeltaTime * kAnchorMass) / distanceToCenterSqr);
     }
 
     this->position += (this->velocity * kDeltaTime);
-    this->position = Utils::VectorMod(position, {kWorldWidth,kWorldHeight});
 }
 
 void Star::MakeConstellation(const Grid& grid, const std::array<Star, kStarCount>& particles) const

@@ -4,6 +4,8 @@
 #include <climits>
 #include <raymath.h>
 
+#include "constants.hpp"
+
 struct Utils
 {
     static float GetRandomFValue(const float min, const float max)
@@ -39,7 +41,6 @@ struct Utils
     }
 
 
-
     static void HandleSimulationControl(Camera2D& camera, bool& isPaused, bool& hideStars)
     {
         camera.zoom = Clamp(expf(logf(camera.zoom) + ((float)GetMouseWheelMove() * 0.1f)), 0.1f, 3.5f);
@@ -51,5 +52,13 @@ struct Utils
         {
             hideStars = !hideStars;
         }
+    }
+
+    static int OpacityScaling(const float distanceSqr)
+    {
+        int opacity = kMaximumConstellationOpacity;
+        float coefficient = (kMinimumConstellationOpacity - kMaximumConstellationOpacity) / (kConstellationRadius * kConstellationRadius);
+        opacity += static_cast<int>(distanceSqr * coefficient);
+        return opacity;
     }
 };

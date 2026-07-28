@@ -13,8 +13,8 @@ void Star::Move()
 
 void Star::MakeConstellation(const Grid& grid, const std::array<Star, kStarCount>& particles) const
 {
-    int gridPositionY = std::floor(this->position.y / kConstellationRadius);
-    int gridPositionX = std::floor(this->position.x / kConstellationRadius);
+    const int gridPositionY = std::floor(this->position.y / kConstellationRadius);
+    const int gridPositionX = std::floor(this->position.x / kConstellationRadius);
 
     for (int i = -1; i <= 1; ++i)
     {
@@ -33,7 +33,9 @@ void Star::MakeConstellation(const Grid& grid, const std::array<Star, kStarCount
 
                 if (distanceSqr < (kConstellationRadius * kConstellationRadius))
                 {
-                    DrawLineV(this->position, particles[particleId].position, {218, 218, 218, 15});
+                    int opacity = Utils::OpacityScaling(distanceSqr);
+
+                    DrawLineV(this->position, particles[particleId].position, {218, 218, 218, static_cast<unsigned char>(opacity)});
                 }
             }
         }

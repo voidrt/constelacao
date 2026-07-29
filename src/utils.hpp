@@ -57,7 +57,7 @@ struct Utils
     static int OpacityScaling(const float distanceSqr)
     {
         int opacity = kMaximumConstellationOpacity;
-        float coefficient = (kMinimumConstellationOpacity - kMaximumConstellationOpacity) / (kConstellationRadius * kConstellationRadius);
+        constexpr float coefficient = (kMinimumConstellationOpacity - kMaximumConstellationOpacity) / (kConstellationRadius * kConstellationRadius);
         opacity += static_cast<int>(distanceSqr * coefficient);
         return opacity;
     }

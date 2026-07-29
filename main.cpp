@@ -39,14 +39,14 @@ static Vector2 GenerateRandomPosition()
 
 static Vector2 GenerateTangentVelocity(const Vector2& position)
 {
-    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.0f);
+    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.05f);
     const float signMultiplier = Utils::GetRandomFNormalized();
 
     const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - position, {.x = kWorldWidth, .y = kWorldHeight});
     const Vector2 tangent = {.x = -centripetal.y, .y = centripetal.x};
     const float distance = Vector2Length(tangent);
 
-    const Vector2 velocityTan = Vector2Normalize(tangent) * signMultiplier * velocityRandom * sqrt((kGravityConstant * kAnchorMass) / distance);
+    const Vector2 velocityTan = Vector2Normalize(tangent) * signMultiplier * velocityRandom * sqrt((kGravityConstant * kAnchorMass)/distance);
     return velocityTan;
 }
 
@@ -132,10 +132,10 @@ int main()
             for (const Star star : stars)
             {
                 const Rectangle starBody = {.x = star.position.x, .y = star.position.y, .width = kStarSize, .height = kStarSize};
-                constexpr Vector2 starMiddle = {.x = kStarSize / 2.0f, .y = kStarSize / 2.0f};
-                const float headingAngle = atan2f(star.velocity.y, star.velocity.x) * RAD2DEG;
+               constexpr Vector2 starMiddle = {.x = kStarSize / 2.0f, .y = kStarSize / 2.0f};
+               const float headingAngle = atan2f(star.velocity.y, star.velocity.x) * RAD2DEG;
 
-                DrawRectanglePro(starBody, starMiddle, headingAngle, {.r = 218, .g = 218, .b = 218, .a = 255});
+	        DrawRectanglePro(starBody, starMiddle, headingAngle, {.r = 218, .g = 218, .b = 218, .a = 255});
             }
         }
 

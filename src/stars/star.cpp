@@ -19,10 +19,7 @@ void Star::MakeConstellation(const Grid& grid, const std::array<Star, kStarCount
     for (int i = -1; i <= 1; ++i)
     {
         for (int j = -1; j <= 1; ++j)
-        {
-            int gridRow = gridPositionY + j;
-            int gridColumn = gridPositionX + i;
-            gridRow = std::clamp(gridRow, 0, kRows - 1);
+        { int gridRow = gridPositionY + j; int gridColumn = gridPositionX + i; gridRow = std::clamp(gridRow, 0, kRows - 1);
             gridColumn = std::clamp(gridColumn, 0, kColumns - 1);
 
             for (const auto particleId : grid[gridRow][gridColumn])

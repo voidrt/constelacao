@@ -19,29 +19,7 @@ struct Utils
         return (random / abs(random));
     }
 
-    static Vector2 VectorToroidalMod(Vector2 vector, const Vector2 worldSpace)
-    {
-        if (vector.x > (worldSpace.x / 2.0f))
-        {
-            vector.x -= (worldSpace.x);
-        }
-        else if (vector.x < -(worldSpace.x / 2.0f))
-        {
-            vector.x += (worldSpace.x);
-        }
-        if (vector.y > (worldSpace.y / 2.0f))
-        {
-            vector.y -= (worldSpace.y);
-        }
-        else if (vector.y < -(worldSpace.y / 2.0f))
-        {
-            vector.y += (worldSpace.y);
-        }
-        return vector;
-    }
-
-
-    static void HandleSimulationControl(Camera2D& camera, bool& isPaused, bool& hideStars)
+    static void HandleSimulationControl(Camera2D& camera, bool& isPaused, bool& hideStars, bool& constellationActive)
     {
         camera.zoom = Clamp(expf(logf(camera.zoom) + ((float)GetMouseWheelMove() * 0.1f)), 0.1f, 3.5f);
         if (IsKeyPressed(KEY_SPACE))
@@ -52,6 +30,27 @@ struct Utils
         {
             hideStars = !hideStars;
         }
+        if (IsKeyPressed(KEY_R))
+        {
+            constellationActive = !constellationActive;
+        }
+        if (IsKeyDown(KEY_W))
+        {
+            camera.target.y -= 5.0f;
+        }
+        if (IsKeyDown(KEY_A))
+        {
+            camera.target.x -= 5.0f;
+        }
+        if (IsKeyDown(KEY_D))
+        {
+            camera.target.x += 5.0f;
+        }
+        if (IsKeyDown(KEY_S))
+        {
+            camera.target.y += 5.0f;
+        }
+
     }
 
     static int OpacityScaling(const float distanceSqr)

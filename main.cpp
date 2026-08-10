@@ -4,6 +4,7 @@
 #include "src/utils.hpp"
 
 static bool isPaused = true;
+static bool constellationActive = true;
 static bool hideStars = false;
 static std::array<Star, kStarCount> stars;
 static Grid grid{};
@@ -25,28 +26,30 @@ static void AllocateVectorSpace()
     }
 }
 
-static Vector2 GenerateRandomPosition()
+static Vector3 GenerateRandomPosition()
 {
     const float radiusRandom = Utils::GetRandomFValue(0.0f, 1.0f);
     const float angleRandom = Utils::GetRandomFValue(0.0f, 1.0f);
-    const float positionR = (10 * kAnchorRadius) + (sqrt(radiusRandom) * ((kWorldWidth/2.0f) - (20 * kAnchorRadius)));
+    const float depth = Utils::GetRandomFValue(-kSpaceDepth, kSpaceDepth);
+    const float positionR = (5 * kAnchorRadius) + (sqrt(radiusRandom) * ((kWorldWidth/2.0f) - (20 * kAnchorRadius)));
     const float positionTheta = 2 * PI * angleRandom;
 
-    Vector2 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta)};
+
+    const Vector3 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta), .z=depth};
 
     return positionGenerated;
 }
 
-static Vector2 GenerateTangentVelocity(const Vector2& position)
+static Vector3 GenerateTangentVelocity(const Vector3& position)
 {
     const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.05f);
     const float signMultiplier = Utils::GetRandomFNormalized();
 
-    const Vector2 centripetal = Utils::VectorToroidalMod(kWorldCenter - position, {.x = kWorldWidth, .y = kWorldHeight});
-    const Vector2 tangent = {.x = -centripetal.y, .y = centripetal.x};
-    const float distance = Vector2Length(tangent);
+    const Vector3 centripetal = kWorldCenter - position;
+    const Vector3 tangent = {.x = -centripetal.y, .y = centripetal.x, .z=centripetal.z};
+    const float distance = Vector3Length(tangent);
 
-    const Vector2 velocityTan = Vector2Normalize(tangent) * signMultiplier * velocityRandom * sqrt((kGravityConstant * kAnchorMass)/distance);
+    const Vector3 velocityTan = Vector3Normalize(tangent) * 1.0f * velocityRandom * sqrt((kGravityConstant * kAnchorMass)/distance);
     return velocityTan;
 }
 
@@ -57,8 +60,8 @@ static int InitStars()
 
     for (size_t i{}; i < kStarCount; ++i)
     {
-        const Vector2 position = GenerateRandomPosition();
-        const Vector2 velocity = GenerateTangentVelocity(position);
+        const Vector3 position = GenerateRandomPosition();
+        const Vector3 velocity = GenerateTangentVelocity(position);
 
         stars[i].id = static_cast<int>(i);
         stars[i].position = position;
@@ -108,7 +111,7 @@ static void RunSimulation()
         grid[gridPositionY][gridPositionX].push_back(static_cast<int>(star.id));
     }
 
-    for (Star& star : stars) { star.MakeConstellation(grid, stars); }
+    if (constellationActive) {for (Star& star : stars) { star.MakeConstellation(grid, stars); }}
 }
 
 int main()
@@ -117,25 +120,21 @@ int main()
 
     while (!WindowShouldClose())
     {
-        Utils::HandleSimulationControl(camera, isPaused, hideStars);
+        Utils::HandleSimulationControl(camera, isPaused, hideStars, constellationActive);
 
         BeginDrawing();
         ClearBackground({.r = 24, .g = 24, .b = 22, .a = 255});
 
         BeginMode2D(camera);
 
-        DrawRectangleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)}, {.x = kAnchorRadius, .y = kAnchorRadius}, RAYWHITE);
+        DrawCircleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)},kAnchorRadius, RAYWHITE);
         DrawRectangleLines(0.0f,0.0f,kWorldWidth,kWorldHeight,DARKGRAY);
 
         if (!hideStars)
         {
             for (const Star star : stars)
             {
-                const Rectangle starBody = {.x = star.position.x, .y = star.position.y, .width = kStarSize, .height = kStarSize};
-               constexpr Vector2 starMiddle = {.x = kStarSize / 2.0f, .y = kStarSize / 2.0f};
-               const float headingAngle = atan2f(star.velocity.y, star.velocity.x) * RAD2DEG;
-
-	        DrawRectanglePro(starBody, starMiddle, headingAngle, {.r = 218, .g = 218, .b = 218, .a = 255});
+                star.DrawStar();
             }
         }
 

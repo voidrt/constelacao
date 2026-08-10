@@ -7,10 +7,11 @@
 
 struct Star
 {
-    Vector2 position{};
-    Vector2 velocity{};
+    Vector3 position{};
+    Vector3 velocity{};
     int id{};
 
     void Move();
-    void MakeConstellation(const Grid& grid, const std::array<Star, kStarCount>& particles) const;
+    void DrawStar() const ;
+    void MakeConstellation(const Grid& grid, const std::array<Star, kStarCount>& stars) const;
 };

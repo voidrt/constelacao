@@ -15,12 +15,12 @@ inline constexpr int kRows = kWorldHeight / 50;
 inline constexpr float kAnchorMass = 4000.0f;
 inline constexpr float kGravityConstant = 15.7f;
 inline constexpr float kDeltaTime = 0.016f;
-inline constexpr Vector2 kWorldCenter = {.x = kWorldWidth / 2.0f, .y = kWorldHeight / 2.0f};
+inline constexpr Vector3 kWorldCenter = {.x = kWorldWidth / 2.0f, .y = kWorldHeight / 2.0f, .z=0.0f};
 
 //visuals
-
 inline constexpr float kConstellationRadius = 50.0f;
-inline constexpr float kStarSize = 1.0f;
+inline constexpr float kStarSize = 2.4f;
 inline constexpr int kMinimumConstellationOpacity = 5;
 inline constexpr int kMaximumConstellationOpacity = 60;
-inline constexpr float kAnchorRadius = 6.0f;
+inline constexpr float kAnchorRadius = 8.0f;
+inline constexpr float kSpaceDepth = 20.0f;

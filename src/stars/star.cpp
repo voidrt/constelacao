@@ -27,10 +27,11 @@ void Star::DrawStar() const
 
 void Star::Move()
 {
-    const Vector3 centripetal = kWorldCenter - this->position;
+    const Vector3 centripetal = (kWorldCenter - this->position);
     if (const float distanceToCenterSqr = Vector3LengthSqr(centripetal); distanceToCenterSqr > 1.0f)
     {
-        this->velocity += Vector3Scale(Vector3Normalize(centripetal), (kGravityConstant * kDeltaTime * kAnchorMass) / distanceToCenterSqr);
+        this->velocity += Vector3Scale(Vector3Normalize(centripetal),
+            (kGravityConstant * kDeltaTime * kAnchorMass) / (distanceToCenterSqr));
     }
 
     this->position += (this->velocity * kDeltaTime);
@@ -62,6 +63,7 @@ void Star::MakeConstellation(const Grid& grid, const std::array<Star, kStarCount
                     Vector2 position2D = {this->position.x, this->position.y};
                     Vector2 otherStarPosition2D = {stars[starId].position.x, stars[starId].position.y};
                     DrawLineV(position2D, otherStarPosition2D, {218, 218, 218, static_cast<unsigned char>(opacity)});
+                    //! GLOBAL ENGINE EVENT CALL -> https://www.youtube.com/watch?v=nOgndBB84eQ
                 }
             }
         }

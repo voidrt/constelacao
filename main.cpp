@@ -31,25 +31,27 @@ static Vector3 GenerateRandomPosition()
     const float radiusRandom = Utils::GetRandomFValue(0.0f, 1.0f);
     const float angleRandom = Utils::GetRandomFValue(0.0f, 1.0f);
     const float depth = Utils::GetRandomFValue(-kSpaceDepth, kSpaceDepth);
-    const float positionR = (5 * kAnchorRadius) + (sqrt(radiusRandom) * ((kWorldWidth/2.0f) - (20 * kAnchorRadius)));
+    const float positionR = (5 * kAnchorRadius) + (sqrt(radiusRandom) * ((kWorldWidth / 2.0f) - (20 * kAnchorRadius)));
     const float positionTheta = 2 * PI * angleRandom;
 
 
-    const Vector3 positionGenerated = {.x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta), .z=depth};
+    const Vector3 positionGenerated = {
+        .x = kWorldCenter.x + positionR * cosf(positionTheta), .y = kWorldCenter.y + positionR * sinf(positionTheta), .z = depth
+    };
 
     return positionGenerated;
 }
 
 static Vector3 GenerateTangentVelocity(const Vector3& position)
 {
-    const float velocityRandom = Utils::GetRandomFValue(0.7f, 1.05f);
     const float signMultiplier = Utils::GetRandomFNormalized();
 
-    const Vector3 centripetal = kWorldCenter - position;
-    const Vector3 tangent = {.x = -centripetal.y, .y = centripetal.x, .z=centripetal.z};
+    const Vector3 centripetal = (kWorldCenter - position);
+    const Vector3 tangent = {.x = -centripetal.y, .y = centripetal.x, .z = centripetal.z};
     const float distance = Vector3Length(tangent);
 
-    const Vector3 velocityTan = Vector3Normalize(tangent) * 1.0f * velocityRandom * sqrt((kGravityConstant * kAnchorMass)/distance);
+    const Vector3 velocityTan = Vector3Normalize(tangent)* signMultiplier * 
+            sqrt((kGravityConstant * kAnchorMass) / (distance));
     return velocityTan;
 }
 
@@ -84,6 +86,7 @@ static void InitSimulation()
     SetTargetFPS(60);
 
     InitWindow(kWindowWidth, kWindowHeight, "Constellations");
+    SetWindowState(FLAG_FULLSCREEN_MODE);
 
     InitStars();
     AllocateVectorSpace();
@@ -111,7 +114,7 @@ static void RunSimulation()
         grid[gridPositionY][gridPositionX].push_back(static_cast<int>(star.id));
     }
 
-    if (constellationActive) {for (Star& star : stars) { star.MakeConstellation(grid, stars); }}
+    if (constellationActive) { for (Star& star : stars) { star.MakeConstellation(grid, stars); } }
 }
 
 int main()
@@ -127,8 +130,8 @@ int main()
 
         BeginMode2D(camera);
 
-        DrawCircleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)},kAnchorRadius, RAYWHITE);
-        DrawRectangleLines(0.0f,0.0f,kWorldWidth,kWorldHeight,DARKGRAY);
+        DrawCircleV({kWorldCenter.x - (kAnchorRadius / 2.0f), kWorldCenter.y - (kAnchorRadius / 2.0f)}, kAnchorRadius, RAYWHITE);
+        DrawRectangleLines(0.0f, 0.0f, kWorldWidth, kWorldHeight,DARKGRAY);
 
         if (!hideStars)
         {
